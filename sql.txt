@@ -1,0 +1,308 @@
+数据库内创建如下表
+已知有如下4张表：
+【学生表】
+student(sid, sname, sbirth, ssex) – 学生编号, 学生姓名, 出生年月, 学生性别
+
+create table student(
+sid int primary key auto_increment,
+sname varchar(32) not null,
+sbirth datetime,
+ssex enum('男','女') not null
+);
+【课程表】
+course(cid, cname, tid) – – 课程编号, 课程名称, 教师编号
+
+create table course(
+cid int primary key auto_increment,
+cname varchar(32) not null,
+tid int,
+foreign key(tid) references teacher(tid)
+on update cascade on delete cascade
+);
+【教师表】
+teacher(tid, tname) – 教师编号,教师姓名
+
+create table teacher(
+tid  int primary key auto_increment,
+tname varchar(30) not null
+);
+【成绩表】
+score(sid, cid, sscore) – 学生编号,课程编号,分数
+
+create table score(
+sid int,
+cid int,
+sscore int(3) not null,
+foreign key(sid) references student(sid)
+on update cascade on delete cascade,
+foreign key(cid) references course(cid)
+on update cascade on delete cascade
+);
+-- 插入学生表测试数据
+INSERT INTO student VALUES('01','赵雷','1990-01-01','男');
+INSERT INTO student VALUES('02','钱电','1990-12-21','男');
+INSERT INTO student VALUES('03','孙风','1990-05-20','男');
+INSERT INTO student VALUES('04','李云','1990-08-06','男');
+INSERT INTO student VALUES('05','周梅','1991-12-01','女');
+INSERT INTO student VALUES('06','吴兰','1992-03-01','女');
+INSERT INTO student VALUES('07','郑竹','1989-07-01','女');
+INSERT INTO student VALUES('08','王菊','1990-01-20','女');
+-- 插入课程表测试数据
+INSERT INTO course VALUES('01','语文','02');
+INSERT INTO course VALUES('02','数学','01');
+INSERT INTO course VALUES('03','英语','03');
+-- 插入教师表测试数据
+INSERT INTO teacher VALUES('01','张三');
+INSERT INTO teacher VALUES('02','李四');
+INSERT INTO teacher VALUES('03','王五');
+-- 插入成绩表测试数据
+INSERT INTO score VALUES('01','01',80);
+INSERT INTO score VALUES('01','02',90);
+INSERT INTO score VALUES('01','03',99);
+INSERT INTO score VALUES('02','01',70);
+INSERT INTO score VALUES('02','02',60);
+INSERT INTO score VALUES('02','03',80);
+INSERT INTO score VALUES('03','01',80);
+INSERT INTO score VALUES('03','02',80);
+INSERT INTO score VALUES('03','03',80);
+INSERT INTO score VALUES('04','01',50);
+INSERT INTO score VALUES('04','02',30);
+INSERT INTO score VALUES('04','03',20);
+INSERT INTO score VALUES('05','01',76);
+INSERT INTO score VALUES('05','02',87);
+INSERT INTO score VALUES('06','01',31);
+INSERT INTO score VALUES('06','03',34);
+INSERT INTO score VALUES('07','02',89);
+INSERT INTO score VALUES('07','03',98);
+
+1. 查询姓“张”的老师的个数。
+select count(*) from teacher where tname like "张%";
+2. 查询名字中有“风”字的学生名单。
+select * from student where sname like '%风%';
+3. 1990年出生的学生名单（注：student表中sbirth列的类型是datetime）。
+select * from student where sbirth like '1990%';
+select * from student where sbirth regexp '^1990';
+4. 查询课程编号为“02”的总成绩。
+select sum(sscore) from score where cid=02;
+5. 查询选了课程的学生人数。
+select count(distinct sid) from score;
++---------------------+
+| count(distinct sid) |
++---------------------+
+|                   7 |
++---------------------+
+
+6. 查询各科成绩最高和最低的分： 以如下的形式显示：课程ID，最高分，最低分。
+select cid as 课程ID,max(sscore)as 最高分,min(sscore) as 最低分
+from score group by cid;
++----------+-----------+-----------+
+| 课程ID   | 最高分    | 最低分    |
++----------+-----------+-----------+
+|        1 |        80 |        31 |
+|        2 |        90 |        30 |
+|        3 |        99 |        20 |
++----------+-----------+-----------+
+7. 查询每门课程被选修的学生数。
++------+----------+
+| cid  | count(*) |
++------+----------+
+|    1 |        6 |
+|    2 |        6 |
+|    3 |        6 |
++------+----------+
+select cid,count(sid) from score group by cid;
+
+8. 查询男生、女生人数。
+select ssex,count(*) from student group by ssex;
++------+----------+
+| ssex | count(*) |
++------+----------+
+| 男   |        4 |
+| 女   |        4 |
++------+----------+
+9. 查询平均成绩大于60分的学生的学号和平均成绩。
+select sid,avg(sscore) from score
+group by sid having avg(sscore)>60;
++------+-------------+
+| sid  | avg(sscore) |
++------+-------------+
+|    1 |     89.6667 |
+|    2 |     70.0000 |
+|    3 |     80.0000 |
+|    5 |     81.5000 |
+|    7 |     93.5000 |
++------+-------------+
+10. 查询至少选修两门课程的学生学号。
+select sid,count(*) from score group by sid having count(*)>=2;
++------+----------+
+| sid  | count(*) |
++------+----------+
+|    1 |        3 |
+|    2 |        3 |
+|    3 |        3 |
+|    4 |        3 |
+|    5 |        2 |
+|    6 |        2 |
+|    7 |        2 |
++------+----------+
+
+11. 查询两门以上不及格课程的同学的学号及其平均成绩。
+select sid, avg(sscore) from score where sscore<60
+group by sid having count(*)>=2;
++------+-------------+
+| sid  | avg(sscore) |
++------+-------------+
+|    4 |     33.3333 |
+|    6 |     32.5000 |
++------+-------------+
+
+12. 查询同名同性学生名单并统计同名人数。
+select sname,count(sid) from student
+group by sname having count(sid)>1;
+13. 查询每门课程的平均成绩，结果按平均成绩升序排序，平均成绩相同时，按课程号降序排列。
+select cid,avg(sscore) from score
+group by cid order by avg(sscore),cid desc;
+
+14. 查询不及格的课程并按课程号从大到小排列
+select * from score where sscore<60 order by cid;
++------+------+--------+
+| sid  | cid  | sscore |
++------+------+--------+
+|    4 |    1 |     50 |
+|    6 |    1 |     31 |
+|    4 |    2 |     30 |
+|    4 |    3 |     20 |
+|    6 |    3 |     34 |
++------+------+--------+
+
+
+15. 检索课程编号为“04”且分数小于60的学生学号，结果按分数降序排列
+select sid from score where cid='04' and sscore<60
+order by sscore desc;
+
+16.统计每门课程的学生选修人数(超过5人的课程才统计)。
+要求输出课程号和选修人数，查询结果按人数降序排序，若人数相同，按课程号升序排序。
+select cid,count(*) from score
+group by cid having count(*)>5 order by count(*) desc, cid;
++------+----------+
+| cid  | count(*) |
++------+----------+
+|    1 |        6 |
+|    2 |        6 |
+|    3 |        6 |
++------+----------+
+
+ 17. 查询所有课程成绩小于60分的学生的学号、姓名。
+select distinct(student.sid),sname from score left join student on score.sid=student.sid
+where score.sscore<60;
++------+--------+
+| sid  | sname  |
++------+--------+
+|    4 | 李云   |
+|    6 | 吴兰   |
++------+--------+
+select sid as '学号',sname as '姓名' from student where sid in
+(select sid from score where sscore<60);
++--------+--------+
+| 学号   | 姓名   |
++--------+--------+
+|      4 | 李云   |
+|      6 | 吴兰   |
++--------+--------+
+
+18. 查询没有学全所有课的学生的学号、姓名
+select student.sid,sname from score left join student on score.sid=student.sid
+group by student.sid having count(*)<3;
++------+--------+
+| sid  | sname  |
++------+--------+
+|    5 | 周梅   |
+|    6 | 吴兰   |
+|    7 | 郑竹   |
++------+--------+
+select sid as 学号,sname as 姓名 from student where sid in (select sid from score
+group by sid having count(cid)<(select count(cid) from course));
+19. 查询出只选修了两门课程的全部学生的学号和姓名。
+select student.sid,sname from score left join student on score.sid=student.sid
+group by student.sid having count(*)=2;
++------+--------+
+| sid  | sname  |
++------+--------+
+|    5 | 周梅   |
+|    6 | 吴兰   |
+|    7 | 郑竹   |
++------+--------+
+select sid as 学号,sname as 姓名 from student where sid in
+(select sid from score group by sid having count(cid)=2);
+20. 查询课程编号为03且课程成绩在80分以上的学生的学号和姓名
+select student.sid,sname,sscore from student left join score on student.sid=score.sid
+where sscore>80 and cid='3';
++-----+--------+--------+
+| sid | sname  | sscore |
++-----+--------+--------+
+|   1 | 赵雷   |     99 |
+|   7 | 郑竹   |     98 |
++-----+--------+--------+
+select sid as 学号,sname as 姓名 from student where sid in(select sid from score where cid=3 and sscore>80);
+21. 查询课程编号为“01”的课程比“02”的课程成绩高的所有学生的学号。
+select a.sid as 学号 from (select * from score where cid=1)as a join
+ (select * from score where cid=2)as b
+on a.sid=b.sid where a.sscore>b.sscore;
+
+ 
+select * from (select * from score where cid=1) as a
+join (select * from score where cid=2) as b on a.sid=b.sid
+where a.sscore>b.sscore;
++------+------+--------+------+------+--------+
+| sid  | cid  | sscore | sid  | cid  | sscore |
++------+------+--------+------+------+--------+
+|    2 |    1 |     70 |    2 |    2 |     60 |
+|    4 |    1 |     50 |    4 |    2 |     30 |
++------+------+--------+------+------+--------+
+
+22. 按平均成绩从高到低，按如下形式显示：学生ID，课程数，平均分。
+select sid as 学生ID, count(cid) as 课程数,avg(sscore) as 平均分
+from score
+group by sid order by avg(sscore) desc;
++----------+-----------+-----------+
+| 学生ID   | 课程数    | 平均分    |
++----------+-----------+-----------+
+|        7 |         2 |   93.5000 |
+|        1 |         3 |   89.6667 |
+|        5 |         2 |   81.5000 |
+|        3 |         3 |   80.0000 |
+|        2 |         3 |   70.0000 |
+|        4 |         3 |   33.3333 |
+|        6 |         2 |   32.5000 |
++----------+-----------+-----------+
+
+
+23. 使用分段[100-85],[85-70],[70-60],[&lt-60]来统计各科成绩，分别查询各分段的人数、课程ID和课程名称。
+select course.cid as 课程ID,cname as 课程名称,
+sum(case when sscore<60 then  1 else 0 end) as '[&lt-60]',
+sum(case when sscore >=60 and sscore<70 then  1 else 0 end) as'[70-60]',
+sum(case when sscore >=70 and sscore<85 then  1 else 0 end) as'[85-70]',
+sum(case when sscore >=85 and sscore<100 then 1 else 0 end) as '[100-85]'
+from score join course on score.cid=course.cid group by score.cid;
++----------+--------------+----------+---------+---------+----------+
+| 课程ID   | 课程名称     | [&lt-60] | [70-60] | [85-70] | [100-85] |
++----------+--------------+----------+---------+---------+----------+
+|        1 | 语文         |        2 |       0 |       4 |        0 |
+|        2 | 数学         |        1 |       1 |       1 |        3 |
+|        3 | 英语         |        2 |       0 |       2 |        2 |
++----------+--------------+----------+---------+---------+----------+
+
+
+
+24. 查询出每门课程的及格人数和不及格人数。
+select course.cid as 课程ID,cname as 课程名称,
+sum(case when sscore<60 then 1 else 0 end) as '不及格人数',
+sum(case when sscore>=60 then 1 else 0 end) as '及格人数'
+from score join course on course.cid=score.cid group by course.cid;
++----------+--------------+-----------------+--------------+
+| 课程ID    | 课程名称      | 不及格人数       | 及格人数     |
++----------+--------------+-----------------+--------------+
+|        1 | 语文         |               2 |            4 |
+|        2 | 数学         |               1 |            5 |
+|        3 | 英语         |               2 |            4 |
++----------+--------------+-----------------+--------------+
